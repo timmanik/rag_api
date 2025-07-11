@@ -8,6 +8,7 @@ os.environ["TESTING"] = "1"
 # Set DB_HOST (and DSN) to dummy values to avoid real connection attempts.
 os.environ["DB_HOST"] = "localhost"  # or any dummy value
 os.environ["DSN"] = "dummy://"
+os.environ["OPENAI_API_KEY"] = "test"
 
 # -- Patch the vector store classes to bypass DB connection --
 

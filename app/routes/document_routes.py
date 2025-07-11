@@ -29,6 +29,7 @@ from app.models import (
     QueryRequestBody,
     DocumentResponse,
     QueryMultipleBody,
+    QueryReference,
 )
 from app.services.vector_store.async_pg_vector import AsyncPgVector
 from app.utils.document_loader import (
@@ -170,7 +171,7 @@ def get_cached_query_embedding(query: str):
     return vector_store.embedding_function.embed_query(query)
 
 
-@router.post("/query")
+@router.post("/query", response_model=list[QueryReference])
 async def query_embeddings_by_file_id(
     body: QueryRequestBody,
     request: Request,
@@ -182,7 +183,7 @@ async def query_embeddings_by_file_id(
             body.entity_id if body.entity_id else request.state.user.get("id")
         )
 
-    authorized_documents = []
+    authorized_documents: list[tuple[Document, float]] = []
 
     try:
         embedding = get_cached_query_embedding(body.query)
@@ -200,7 +201,7 @@ async def query_embeddings_by_file_id(
             )
 
         if not documents:
-            return authorized_documents
+            return []
 
         document, score = documents[0]
         doc_metadata = document.metadata
@@ -228,7 +229,25 @@ async def query_embeddings_by_file_id(
                     f"Unauthorized access attempt by user {user_authorized} to a document with user_id {doc_user_id}"
                 )
 
-        return authorized_documents
+        # Convert retrieved documents into reference metadata objects
+        references = []
+        for doc, score in authorized_documents:
+            file_id = doc.metadata.get("file_id", "")
+            if isinstance(file_id, dict):
+                if "$in" in file_id and isinstance(file_id["$in"], list):
+                    file_id = ", ".join(map(str, file_id["$in"]))
+                else:
+                    file_id = str(file_id)
+            references.append(
+                QueryReference(
+                    document_id=str(file_id),
+                    page_number=doc.metadata.get("page"),
+                    excerpt=doc.page_content,
+                    score=score,
+                )
+            )
+
+        return references
 
     except HTTPException as http_exc:
         logger.error(
@@ -606,7 +625,7 @@ async def embed_file_upload(
     }
 
 
-@router.post("/query_multiple")
+@router.post("/query_multiple", response_model=list[QueryReference])
 async def query_embeddings_by_file_ids(request: Request, body: QueryMultipleBody):
     try:
         # Get the embedding of the query text
@@ -631,7 +650,24 @@ async def query_embeddings_by_file_ids(request: Request, body: QueryMultipleBody
                 status_code=404, detail="No documents found for the given query"
             )
 
-        return documents
+        references = []
+        for doc, score in documents:
+            file_id = doc.metadata.get("file_id", "")
+            if isinstance(file_id, dict):
+                if "$in" in file_id and isinstance(file_id["$in"], list):
+                    file_id = ", ".join(map(str, file_id["$in"]))
+                else:
+                    file_id = str(file_id)
+            references.append(
+                QueryReference(
+                    document_id=str(file_id),
+                    page_number=doc.metadata.get("page"),
+                    excerpt=doc.page_content,
+                    score=score,
+                )
+            )
+
+        return references
     except HTTPException as http_exc:
         logger.error(
             "HTTP Exception in query_embeddings_by_file_ids | Status: %d | Detail: %s",

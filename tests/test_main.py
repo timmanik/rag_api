@@ -126,8 +126,9 @@ def test_query_embeddings_by_file_id(auth_headers):
     json_data = response.json()
     assert isinstance(json_data, list)
     if json_data:
-        doc = json_data[0][0]
-        assert doc["page_content"] == "Queried content"
+        ref = json_data[0]
+        assert ref["excerpt"] == "Queried content"
+        assert "testid1" in ref["document_id"]
 
 def test_embed_local_file(tmp_path, auth_headers, monkeypatch):
     # Create a temporary file.
@@ -196,5 +197,6 @@ def test_query_multiple(auth_headers):
     json_data = response.json()
     assert isinstance(json_data, list)
     if json_data:
-        doc = json_data[0][0]
-        assert doc["page_content"] == "Queried content"
+        ref = json_data[0]
+        assert ref["excerpt"] == "Queried content"
+        assert "testid1" in ref["document_id"]

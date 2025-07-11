@@ -13,6 +13,22 @@ The API will evolve over time to employ different querying/re-ranking methods, e
 - **Document Management**: Methods for adding, retrieving, and deleting documents.
 - **Vector Store**: Utilizes Langchain's vector store for efficient document retrieval.
 - **Asynchronous Support**: Offers async operations for enhanced performance.
+- **Source Attribution**: Query responses include document IDs, page numbers, and excerpts for easier verification.
+
+### Query Response Format
+
+The `/query` and `/query_multiple` endpoints return a list of references. Each reference contains:
+
+```json
+{
+  "document_id": "example.pdf",
+  "page_number": 2,
+  "excerpt": "A short snippet from the document...",
+  "score": 0.85
+}
+```
+
+This metadata helps you verify where each answer originated.
 
 ## Setup
 

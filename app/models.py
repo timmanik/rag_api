@@ -42,3 +42,12 @@ class QueryMultipleBody(BaseModel):
     query: str
     file_ids: List[str]
     k: int = 4
+
+
+class QueryReference(BaseModel):
+    """Metadata about a retrieved document chunk used in query results."""
+
+    document_id: str
+    page_number: Optional[int] = None
+    excerpt: str
+    score: Optional[float] = None
